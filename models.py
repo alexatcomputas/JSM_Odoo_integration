@@ -1,17 +1,18 @@
 from typing import Annotated, Optional, Union
 
-from pydantic import BaseModel, EmailStr, StringConstraints, validator
+from pydantic import BaseModel, EmailStr, StringConstraints
 
-ListorBool = Optional[Union[list, bool]]
 StrAnnotated = Annotated[str, StringConstraints(strip_whitespace=True)]
 StrAnnotatedorFalse = Optional[Union[str, bool, Annotated[str, StringConstraints(strip_whitespace=True)]]]
+ListIntStr = list[Union[int, StrAnnotated]]
+ListIntStrorBool = Union[ListIntStr, bool]
 
 
 class Product(BaseModel):
     id: int
     name: StrAnnotated
     description: StrAnnotatedorFalse
-    serial_numbers: Optional[list[Annotated[str, StringConstraints(strip_whitespace=True)]]]
+    serial_numbers: Optional[ListIntStr]
     list_price: Optional[float]
 
 
@@ -32,23 +33,24 @@ class Customer(BaseModel):
     street: StrAnnotatedorFalse
     city: StrAnnotatedorFalse
     postal_code: StrAnnotatedorFalse
-    state: StrAnnotatedorFalse
-    country: ListorBool
+    state: ListIntStrorBool
+    country: ListIntStrorBool
     customer_reference: StrAnnotatedorFalse
     is_company: Optional[bool]
 
 
 class StockMoveLine(BaseModel):
-    lot_name: StrAnnotated
-    product_id: list[Union[int, StrAnnotated]]
-    picking_id: list[Union[int, StrAnnotated]]
-    state: StrAnnotated
-    origin: StrAnnotated
+    lot_name: StrAnnotatedorFalse
+    product_id: ListIntStr
+    picking_id: ListIntStrorBool
+    state: Optional[StrAnnotated]
+    origin: Optional[StrAnnotated]
+    company_id: Optional[ListIntStr]
 
 
 class StockPicking(BaseModel):
     id: int
-    sale_id: list[Union[int, StrAnnotated]]
+    sale_id: ListIntStr
 
 
 class SaleOrder(BaseModel):
@@ -60,16 +62,37 @@ class SaleOrder(BaseModel):
     customer_ref: StrAnnotatedorFalse
     tracking_no: StrAnnotatedorFalse
     tracking_no_flex: StrAnnotatedorFalse
-    partner_id: list[Union[int, StrAnnotated]]
+    partner_id: ListIntStr
 
 
 class SaleOrderLine(BaseModel):
     id: int
-    order_id: list[Union[int, StrAnnotated]]
-    product_id: list[Union[int, StrAnnotated]]
+    order_id: int
+    product_id: int
     name: Optional[StrAnnotated]
     quantity: Optional[float]
     price_unit: Optional[float]
 
 
-# class Order(BaseModel):
+class Order(BaseModel):
+    order_id: StrAnnotated
+    order_type: StrAnnotated
+    product_id: int
+    serial_number: StrAnnotated
+    picking_id: int
+    name: Optional[StrAnnotated]
+    sent_hapro: StrAnnotated
+    sent_flex: StrAnnotated
+    sent_bgl: StrAnnotated
+    tracking: StrAnnotated
+    tracking_flex: StrAnnotated
+    customer: StrAnnotated
+    street: StrAnnotated
+    city: StrAnnotated
+    zip: StrAnnotated
+    state: StrAnnotated
+    country: StrAnnotated
+    customer_reference: StrAnnotated
+
+    quantity: Optional[float]
+    price_unit: Optional[float]
