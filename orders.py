@@ -5,18 +5,11 @@ from odoorpc import ODOO
 from models import SaleOrder, SaleOrderLine, StockMoveLine, StockPicking
 from services.odoo import Odoo
 
-# logger = logging.getLogger("odoorpc")
-
-# stock_move_line_model = odoo.env["stock.move.line"]
-# picking_model = odoo.env["stock.picking"]
-# sale_order_model = odoo.env["sale.order"]
-# order_line_model = odoo.env["sale.order.line"]
-# partner_model = odoo.env["res.partner"]
-
 
 class GetOrders:
     def __init__(self, odoo: ODOO, serial_number: str):
         self.odoo = odoo
+        self.production_lot_model = odoo.env["stock.production.lot"]
         self.stock_move_line_model = odoo.env["stock.move.line"]
         self.picking_model = odoo.env["stock.picking"]
         self.sale_order_model = odoo.env["sale.order"]
@@ -24,58 +17,102 @@ class GetOrders:
 
         # Initialize instance attributes to store data
         self.serial_number = serial_number
-        self.lot_id = None
-        self.picking_id = None
+        self.stockmoveline = None
+        self.picking_id = []
+        self.product_id = None
         self.sale_id = None
         self.stockpicking = None
         self.so_line = None
         self.sale_order = None
 
+        self.data_objects = []
+
     def get_order_data(self) -> None:
-        self.lot_id = self._search_lot_for_sns(self.serial_number)
-        self.picking_id = self.lot_id[0].picking_id[0]
+        # Search for records in 'stock.move.line'
+        self.stockmoveline = self._get_stockmoveline(self.serial_number)
 
-        self.stockpicking = self._get_StockPicking(self.picking_id)
-        self.sale_id = self.stockpicking.sale_id[0]
+        if self.stockmoveline.lot_name == "-1":
+            logging.warning(
+                f"""No records found in 'stock.move.line'
+                with the specified serial number/lot name: [{self.serial_number}].
+                """
+            )
+            return
+        # Get the picking id's. Ignore items with False
+        self.picking_id += [item.picking_id for item in self.stockmoveline if item.picking_id is not False]
 
-        self.so_line = self._get_SO_line(order_line_id=self.sale_id)
-        self.sale_order = self._get_sale_order(order_id=self.sale_id)
+        # Get the product id, ignore picking_id = False
+        self.product_id = next(
+            (item.product_id[0] for item in self.stockmoveline if item.picking_id is not False), None
+        )
 
-    def extract_order_data(self) -> dict:
-        # Define types of requests
-
-        pass
-
-    def _search_lot_for_sns(self, lot_name_to_search: str) -> list[StockMoveLine]:
-        model = self.stock_move_line_model
-        matching_records_ids = model.search([("lot_name", "like", lot_name_to_search)])
-
-        if matching_records_ids:
-            records_data = model.read(
-                matching_records_ids, ["lot_name", "product_id", "picking_id", "state", "origin"]
+        picking_id = self.picking_id[0][0] if self.picking_id and self.picking_id[0] else None
+        logging.info(f"Fetching order data on Picking ID [{self.picking_id}]")
+        if len(self.picking_id) > 1:
+            logging.warning(
+                f"""[{self.serial_number}]: Found {len(self.picking_id)} records in 'stock.move.line'
+                with the specified serial number/lot name.
+                """
             )
 
-        else:
-            logging.info("No records found in stock.move.line with the specified lot name.")
-            return []
+        self.stockpicking = self._get_StockPicking(picking_id)
+        self.sale_id = self.stockpicking.sale_id[0]
 
-        results = []
+        self.so_line = self._get_SaleOrderLine(order_id=self.sale_id, product_id=self.product_id)
+        self.sale_order = self._get_sale_order(order_id=self.sale_id)
+
+    def _get_stockmoveline(self, lot_name_to_search: str) -> list[StockMoveLine]:
+        model = self.stock_move_line_model
+        filters = [("lot_name", "like", lot_name_to_search), ("company_id", "=", 1)]
+        matching_record_ids = model.search(filters)
+
+        # If no records found in stock.move.line, check for a lot reference in production.lot #####
+        if not matching_record_ids:
+            logging.info(
+                "No records found in stock.move.line with the specified lot name. Checking production.lot for lot reference."
+            )
+            lot_records = self.production_lot_model.search_read(
+                [("name", "=", lot_name_to_search), ("company_id", "=", 1)], ["id"]
+            )
+
+            if lot_records:
+                filters = [("lot_id", "=", lot_records[0]["id"])]
+                matching_record_ids = model.search(filters)
+            else:
+                logging.warning(
+                    "No production.lot record found either for serial number {lot_name_to_search}. Exiting."
+                )
+                return StockMoveLine(lot_name="-1", product_id=[-1, ""], picking_id=False)
+
+        if not matching_record_ids:
+            logging.info(
+                "Error retrieving data in stock.move.line with specified lot name/serial number [{lot_name_to_search}]."
+            )
+            return StockMoveLine(lot_name="-1", product_id=[-1, ""], picking_id=False)
+
+        if matching_record_ids:
+            records_data = model.read(
+                matching_record_ids, ["lot_name", "product_id", "picking_id", "state", "origin", "company_id"]
+            )
+
         # Process the data as needed
+        results = []
         for record in records_data:
             SML_instance = StockMoveLine(
-                lot_name=record["lot_name"],
-                product_id=record["product_id"],
-                picking_id=record["picking_id"],
-                state=record["state"],
-                origin=record["origin"],
+                lot_name=record.get("lot_name", None),
+                product_id=record.get("product_id", None),
+                picking_id=record.get("picking_id", None),
+                state=record.get("state", None),
+                origin=record.get("origin", None),
+                company_id=record.get("company_id", None),
             )
 
             results.append(SML_instance)
-            logging.info(f"Product ID: {SML_instance.product_id[0]}, Picking ID: {SML_instance.picking_id[0]} found")
+            logging.info(f"Product ID: {SML_instance.product_id}, Picking ID: {SML_instance.picking_id}")
 
         return results
 
-    def _get_StockPicking(self, picking_id: int):
+    def _get_StockPicking(self, picking_id: int) -> StockPicking:
         model = self.picking_model
         picking_record = model.search([("id", "=", picking_id)])
         # Read the 'sale_id' field from the stock.picking record
@@ -90,32 +127,28 @@ class GetOrders:
         logging.warning("No stock.picking sale_id record found for the given picking_id {picking_id}")
         return StockPicking(id=-1, sale_id=-1)
 
-    def _get_SO_line(self, order_line_id: int):
+    def _get_SaleOrderLine(self, order_id: int, product_id: int) -> SaleOrderLine:
         model = self.order_line_model
-        order_line_record = model.search([("id", "=", order_line_id)])
+        # model = self.sale_order_model
 
-        if not order_line_record:
-            logging.warning(f"Order line {order_line_id} not found.")
-            return SaleOrderLine(id=-1, order_line_id=-1, product_id=-1)
+        # order_line_record = model.search([("id", "=", order_line_id)])
+        matching_records_ids = model.search([("order_id", "=", order_id), ("product_id", "=", product_id)])
 
-        order_line_data = model.read(
-            order_line_record, ["order_id", "product_id", "name", "product_uom_qty", "price_unit"]
-        )
-
-        if order_line_data:
-            logging.info(f"Order line {order_line_id} found")
-
-            order_line_record = order_line_data[0]
-            order_line_data = SaleOrderLine(
-                id=order_line_record.get("id", None),
-                order_id=order_line_record.get("order_id", None),
-                product_id=order_line_record.get("product_id", None),
-                name=order_line_record.get("name", None),
-                quantity=order_line_record.get("product_uom_qty", None),
-                price_unit=order_line_record.get("price_unit", None),
+        if matching_records_ids:
+            records_data = model.read(matching_records_ids, ["name", "product_uom_qty", "price_unit"])
+            record = records_data[0]
+            return SaleOrderLine(
+                id=record["id"],
+                order_id=order_id,
+                product_id=product_id,
+                name=record["name"],
+                quantity=record["product_uom_qty"],
+                price_unit=record["price_unit"],
             )
 
-        return order_line_data
+        else:
+            logging.info("No records found in sale.order.line with the specified order_id and product_id.")
+            return SaleOrderLine(id=-1, order_id=-1, product_id=-1)
 
     def _get_sale_order(self, order_id: int):
         model = self.sale_order_model
@@ -140,7 +173,7 @@ class GetOrders:
         )
 
         if sale_order_data:
-            logging.info(f"Sale ordr {order_id} found, ")
+            logging.info(f"Sale order {order_id} found, processing data...")
 
             sale_orer_record = sale_order_data[0]
             sale_order_data = SaleOrder(
