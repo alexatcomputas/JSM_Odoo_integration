@@ -3,7 +3,6 @@ import logging
 from odoorpc import ODOO
 
 from models import SaleOrder, SaleOrderLine, StockMoveLine, StockPicking
-from services.odoo import Odoo
 
 
 class GetOrders:
@@ -18,14 +17,12 @@ class GetOrders:
         # Initialize instance attributes to store data
         self.serial_number = serial_number
         self.stockmoveline = None
-        self.picking_id = []
+        self.picking_id = None
         self.product_id = None
         self.sale_id = None
         self.stockpicking = None
         self.so_line = None
         self.sale_order = None
-
-        self.data_objects = []
 
     def get_order_data(self) -> None:
         # Search for records in 'stock.move.line'
@@ -39,30 +36,19 @@ class GetOrders:
             )
             return
         # Get the picking id's. Ignore items with False
-        self.picking_id += [item.picking_id for item in self.stockmoveline if item.picking_id is not False]
+        self.picking_id = self.stockmoveline.picking_id[0] if self.stockmoveline.picking_id else None
+        self.product_id = self.stockmoveline.product_id[0] if self.stockmoveline.product_id else None
 
-        # Get the product id, ignore picking_id = False
-        self.product_id = next(
-            (item.product_id[0] for item in self.stockmoveline if item.picking_id is not False), None
-        )
-
-        picking_id = self.picking_id[0][0] if self.picking_id and self.picking_id[0] else None
-        logging.info(f"Fetching order data on Picking ID [{self.picking_id}]")
-        if len(self.picking_id) > 1:
-            logging.warning(
-                f"""[{self.serial_number}]: Found {len(self.picking_id)} records in 'stock.move.line'
-                with the specified serial number/lot name.
-                """
-            )
-
-        self.stockpicking = self._get_StockPicking(picking_id)
+        self.stockpicking = self._get_StockPicking(self.picking_id)
         self.sale_id = self.stockpicking.sale_id[0]
 
         self.so_line = self._get_SaleOrderLine(order_id=self.sale_id, product_id=self.product_id)
         self.sale_order = self._get_sale_order(order_id=self.sale_id)
 
-    def _get_stockmoveline(self, lot_name_to_search: str) -> list[StockMoveLine]:
+    def _get_stockmoveline(self, lot_name_to_search: str) -> StockMoveLine:
         model = self.stock_move_line_model
+        error_model = StockMoveLine(lot_name="-1", product_id=[-1, ""], picking_id=False)
+
         filters = [("lot_name", "like", lot_name_to_search), ("company_id", "=", 1)]
         matching_record_ids = model.search(filters)
 
@@ -82,35 +68,36 @@ class GetOrders:
                 logging.warning(
                     "No production.lot record found either for serial number {lot_name_to_search}. Exiting."
                 )
-                return StockMoveLine(lot_name="-1", product_id=[-1, ""], picking_id=False)
+                return error_model
 
         if not matching_record_ids:
             logging.info(
                 "Error retrieving data in stock.move.line with specified lot name/serial number [{lot_name_to_search}]."
             )
-            return StockMoveLine(lot_name="-1", product_id=[-1, ""], picking_id=False)
+            return error_model
 
         if matching_record_ids:
             records_data = model.read(
                 matching_record_ids, ["lot_name", "product_id", "picking_id", "state", "origin", "company_id"]
             )
 
-        # Process the data as needed
-        results = []
+        # results = []
         for record in records_data:
-            SML_instance = StockMoveLine(
-                lot_name=record.get("lot_name", None),
-                product_id=record.get("product_id", None),
-                picking_id=record.get("picking_id", None),
-                state=record.get("state", None),
-                origin=record.get("origin", None),
-                company_id=record.get("company_id", None),
-            )
+            if record["picking_id"]:
+                stockmoveline = StockMoveLine(
+                    lot_name=record.get("lot_name", None),
+                    product_id=record.get("product_id", None),
+                    picking_id=record.get("picking_id", None),
+                    state=record.get("state", None),
+                    origin=record.get("origin", None),
+                    company_id=record.get("company_id", None),
+                )
 
-            results.append(SML_instance)
-            logging.info(f"Product ID: {SML_instance.product_id}, Picking ID: {SML_instance.picking_id}")
+                # results.append(SML_instance)
+                logging.info(f"Product ID: {stockmoveline.product_id}, Picking ID: {stockmoveline.picking_id}")
+                break
 
-        return results
+        return stockmoveline
 
     def _get_StockPicking(self, picking_id: int) -> StockPicking:
         model = self.picking_model
@@ -129,9 +116,7 @@ class GetOrders:
 
     def _get_SaleOrderLine(self, order_id: int, product_id: int) -> SaleOrderLine:
         model = self.order_line_model
-        # model = self.sale_order_model
 
-        # order_line_record = model.search([("id", "=", order_line_id)])
         matching_records_ids = model.search([("order_id", "=", order_id), ("product_id", "=", product_id)])
 
         if matching_records_ids:
@@ -175,17 +160,17 @@ class GetOrders:
         if sale_order_data:
             logging.info(f"Sale order {order_id} found, processing data...")
 
-            sale_orer_record = sale_order_data[0]
+            sale_order_record = sale_order_data[0]
             sale_order_data = SaleOrder(
-                id=sale_orer_record.get("id", None),
-                name=sale_orer_record.get("name", None),
-                sent_Hapro=sale_orer_record.get("x_received_shipment", None),
-                sent_Flex=sale_orer_record.get("delivered_date", None),
-                sent_BGL=sale_orer_record.get("sent_from_bgl_date", None),
-                customer_ref=sale_orer_record.get("client_order_ref", None),
-                tracking_no=sale_orer_record.get("soform_tracking_no", None),
-                tracking_no_flex=sale_orer_record.get("x_transporter_trackingno", None),
-                partner_id=sale_orer_record.get("partner_id", None),
+                id=sale_order_record.get("id", None),
+                name=sale_order_record.get("name", None),
+                sent_Hapro=sale_order_record.get("x_received_shipment", None),
+                sent_Flex=sale_order_record.get("delivered_date", None),
+                sent_BGL=sale_order_record.get("sent_from_bgl_date", None),
+                customer_ref=sale_order_record.get("client_order_ref", None),
+                tracking_no=sale_order_record.get("soform_tracking_no", None),
+                tracking_no_flex=sale_order_record.get("x_transporter_trackingno", None),
+                partner_id=sale_order_record.get("partner_id", None),
             )
 
             return sale_order_data

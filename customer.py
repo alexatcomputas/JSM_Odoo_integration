@@ -11,6 +11,7 @@ class GetCustomer:
         self.partner_id = partner_id
         self.resPartner = odoo.env["res.partner"]
         self.customer_data = None
+        self.return_item = None
 
     def fetch_customer_data(self) -> Customer:
         id = self.partner_id
@@ -33,5 +34,18 @@ class GetCustomer:
             "is_company": partner_details.get("is_company", None),
         }
 
-        logging.debug(f"Returning data on customer [{id}: {customer_data.name}]")
+        logging.debug(f"Returning data on customer [{id}: {customer_data["name"]}]")
         self.customer_data = Customer(**customer_data)
+
+    def buildCustomerField(self) -> str:
+        name = self.customer_data.name
+        street = self.customer_data.street
+        city = self.customer_data.city
+        postal_code = self.customer_data.postal_code
+        state = self.customer_data.state[1] + "  \n" if self.customer_data.state else ""
+        country = self.customer_data.country[1] if self.customer_data.country else ""
+
+        formatted_address = f"""{name}  \n{street}  \n{city}  \n{postal_code}  \n{state}{country}"""
+
+        self.return_item = formatted_address
+        return formatted_address
