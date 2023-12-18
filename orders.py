@@ -55,9 +55,8 @@ class Order:
         # Initialize filters with the company condition
         filters = [("company_id", "=", 1)]
 
-        # Check if there is exactly one lot_id
         if len(lot_names) == 1:
-            # Add it to the filters with an implicit AND clause
+            # Add it to the filters with implicit AND clause
             filters.append(("lot_name", "ilike", lot_names[0]))
 
         else:
@@ -65,10 +64,7 @@ class Order:
             # Create a new list to hold lot_id filters
             lot_id_filters = []
 
-        # Loop through the lot_names list
         for lot_name in lot_names:
-            # Add a pipe and the lot_id condition for each lot_name
-            # lot_id_filters.append("|")
             lot_id_filters.append(("lot_name", "ilike", lot_name))
 
         # Finally, Add the lot_id filters to the filters list
