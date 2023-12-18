@@ -50,38 +50,40 @@ class Order:
         error_model = StockMoveLine(lot_name="-1", product_id=[-1, ""], picking_id=False)
 
         # Remove all spaces and split the lot_name_to_search into a list of names
-        lot_names = lot_name_to_search.replace(" ", "").split(",")
+        lot_ids = lot_name_to_search.replace(" ", "").split(",")
 
-        # Initialize filters with the company condition
-        filters = [("company_id", "=", 1)]
-
-        if len(lot_names) == 1:
-            # Add it to the filters with implicit AND clause
-            filters.append(("lot_name", "ilike", lot_names[0]))
-
-        else:
-            # If there's more than one lot_id, lot id's should be prepended OR logic
-            # Create a new list to hold lot_id filters
+        def _create_odoo_filters(field_name, lot_ids):
+            # Initialize filters with the company condition
+            filters = [("company_id", "=", 1)]
             lot_id_filters = []
 
-        for lot_name in lot_names:
-            lot_id_filters.append(("lot_name", "ilike", lot_name))
+            # Check if there is exactly one lot_id
+            if len(lot_ids) == 1:
+                # Add it to the filters with an implicit AND clause
+                filters.append((field_name, "ilike", lot_ids[0]))
+            else:
+                # If there's more than one lot_id, prepare for OR logic
+                for lot_id in lot_ids:
+                    lot_id_filters.append((field_name, "ilike", lot_id))
 
-        # Finally, Add the lot_id filters to the filters list
-        if lot_id_filters:
-            filters.append("|")
-            filters.extend(lot_id_filters)
+                # Finally, Add the lot_id filters to the filters list with OR logic
+                if lot_id_filters:
+                    filters.append("|")
+                    filters.extend(lot_id_filters)
 
+            return filters
+
+        filters = _create_odoo_filters("lot_name", lot_ids)
         matching_record_ids = model.search(filters)
 
-        # If no records found in stock.move.line, check for a lot reference in production.lot #####
+        # If no records found in stock.move.line, check for a lot reference in production.lot instead
         if not matching_record_ids:
             logging.info(
                 "No records found in stock.move.line with the specified lot name. Checking production.lot for lot reference."
             )
-            lot_records = self.production_lot_model.search_read(
-                [("name", "=", lot_name_to_search), ("company_id", "=", 1)], ["id"]
-            )
+
+            filters = _create_odoo_filters("lot_id", lot_ids)
+            lot_records = self.production_lot_model.search_read(filters)
 
             if lot_records:
                 filters = [("lot_id", "=", lot_records[0]["id"])]
