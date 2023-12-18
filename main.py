@@ -4,8 +4,8 @@ import functions_framework
 from flask import Request
 
 from customer import GetCustomer
-from orders import GetOrders
-from response import buildCustomerResponse, buildOrderResponse
+from orders import Order
+from response import buildResponse
 from services.odoo import Odoo
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
@@ -35,54 +35,53 @@ def main(request: Request):
 
     # Get order data:
     try:
-        Order = GetOrders(odoo=odoo, serial_number=serial_number)
-        Order.get_order_data()
+        order = Order(odoo=odoo, serial_number=serial_number)
+        order.get_order_data()
         order_OK = True
 
     except Exception as e:
         # Order.picking_id -> Order.sale_id -> Order.product_id
-        if Order.picking_id and not Order.sale_id:
-            logging.error(f"Error fetching order data on SN {Order.serial_number} and picking id {Order.picking_id}")
-        elif Order.sale_id and not Order.product_id:
+        if order.picking_id and not order.sale_id:
+            logging.error(f"Error fetching order data on SN {order.serial_number} and picking id {order.picking_id}")
+        elif order.sale_id and not order.product_id:
             logging.error(
-                f"Error fetching product data on picking SN {Order.serial_number}, picking id {Order.picking_id} and sale id {Order.sale_id}"
+                f"Error fetching product data on picking SN {order.serial_number}, picking id {order.picking_id} and sale id {order.sale_id}"
             )
 
         logging.error(f"### Stack trace: ###\n{e}")
-        return (f"Failed obtaining order data on serial number {Order.serial_number}. Exiting", 500)
+        return (f"Failed obtaining order data on serial number {order.serial_number}. Exiting", 500)
 
     # Get customer data:
     try:
-        partner_id = Order.sale_order.partner_id[0]
-        Customer = GetCustomer(odoo=odoo, partner_id=partner_id)
-        Customer.fetch_customer_data()
+        partner_id = order.sale_order.partner_id[0]
+        customer = GetCustomer(odoo=odoo, partner_id=partner_id)
         customer_OK = True
 
     except Exception as e:
-        if Order.stockpicking.sale_id[1]:
-            orderid = Order.stockpicking.sale_id[1]
-            logging.error(
-                f"Error fetching customer data from serial number {serial_number} and order id {orderid}:{e}"
-            )
+        if order and hasattr(order, "stockpicking") and order.stockpicking:
+            if hasattr(order.stockpicking, "sale_id") and order.stockpicking.sale_id:
+                orderid = order.stockpicking.sale_id[1]
+                logging.error(
+                    f"Error fetching customer data from serial number {serial_number} and order id {orderid}:{e}"
+                )
         else:
             logging.error(f"Error fetching customer data from serial number {serial_number}:{e}")
 
     if order_OK and customer_OK:
-        logging.info("Success, returning order and customer data")
+        logging.info(f"Success, returning order [{order.sale_order.name}] and customer data to JSM")
 
-        test = buildCustomerResponse(Customer)
-        print(test.model_dump_json(by_alias=True, exclude_none=True))
+        orderResponse = buildResponse(order, customer)
+        print(orderResponse.model_dump_json(by_alias=True, exclude_none=True))
+
+        # customerResponse = buildCustomerResponse(customer)
+        # print(customerResponse.model_dump_json(by_alias=True, exclude_none=True))
+
         return ("Success", 200)
 
     # TODO: Implement partial return
     elif order_OK:
-        logging.info("Partial success, returning order data")
-        return ("Partial success (Failed obtaining customer data)", 202)
-
-    # TODO: Implement partial return
-    # elif customer_OK:
-    #     logging.info("Partial success, returning customer data")
-    #     return ("Partial success (Failed obtaining order data)", 202)
+        logging.info("Partial success, (Failed obtaining customer data). Only returning order data")
+        return ("Partial success, (Failed obtaining customer data). Only returning order data", 202)
 
     elif not (order_OK and customer_OK):
         return (f"Failed retrieving order and customer data on {serial_number}", 404)

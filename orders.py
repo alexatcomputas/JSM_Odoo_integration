@@ -5,7 +5,7 @@ from odoorpc import ODOO
 from models import SaleOrder, SaleOrderLine, StockMoveLine, StockPicking
 
 
-class GetOrders:
+class Order:
     def __init__(self, odoo: ODOO, serial_number: str):
         self.odoo = odoo
         self.production_lot_model = odoo.env["stock.production.lot"]
@@ -49,7 +49,33 @@ class GetOrders:
         model = self.stock_move_line_model
         error_model = StockMoveLine(lot_name="-1", product_id=[-1, ""], picking_id=False)
 
-        filters = [("lot_name", "like", lot_name_to_search), ("company_id", "=", 1)]
+        # Remove all spaces and split the lot_name_to_search into a list of names
+        lot_names = lot_name_to_search.replace(" ", "").split(",")
+
+        # Initialize filters with the company condition
+        filters = [("company_id", "=", 1)]
+
+        # Check if there is exactly one lot_id
+        if len(lot_names) == 1:
+            # Add it to the filters with an implicit AND clause
+            filters.append(("lot_name", "ilike", lot_names[0]))
+
+        else:
+            # If there's more than one lot_id, lot id's should be prepended OR logic
+            # Create a new list to hold lot_id filters
+            lot_id_filters = []
+
+        # Loop through the lot_names list
+        for lot_name in lot_names:
+            # Add a pipe and the lot_id condition for each lot_name
+            # lot_id_filters.append("|")
+            lot_id_filters.append(("lot_name", "ilike", lot_name))
+
+        # Finally, Add the lot_id filters to the filters list
+        if lot_id_filters:
+            filters.append("|")
+            filters.extend(lot_id_filters)
+
         matching_record_ids = model.search(filters)
 
         # If no records found in stock.move.line, check for a lot reference in production.lot #####
@@ -66,13 +92,13 @@ class GetOrders:
                 matching_record_ids = model.search(filters)
             else:
                 logging.warning(
-                    "No production.lot record found either for serial number {lot_name_to_search}. Exiting."
+                    f"No production.lot record found either for serial number {lot_name_to_search}. Exiting."
                 )
                 return error_model
 
         if not matching_record_ids:
             logging.info(
-                "Error retrieving data in stock.move.line with specified lot name/serial number [{lot_name_to_search}]."
+                f"Error retrieving data in stock.move.line with specified lot name/serial number [{lot_name_to_search}]."
             )
             return error_model
 

@@ -1,6 +1,6 @@
 from typing import Annotated, Optional, Union
 
-from pydantic import BaseModel, EmailStr, Field, StringConstraints
+from pydantic import BaseModel, EmailStr, StringConstraints
 
 StrAnnotated = Annotated[str, StringConstraints(strip_whitespace=True)]
 StrAnnotatedorFalse = Optional[Union[str, bool, Annotated[str, StringConstraints(strip_whitespace=True)]]]
