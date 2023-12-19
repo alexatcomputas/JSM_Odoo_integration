@@ -4,14 +4,13 @@ import functions_framework
 from flask import Request
 
 from customer import GetCustomer
+from odoo import Odoo
 from orders import Order
 from response import buildResponse
-from services.odoo import Odoo
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
 odoo = Odoo
-# fields = odoo.env["stock.move.line"].fields_get()
 
 
 @functions_framework.http
@@ -20,15 +19,16 @@ def main(request: Request):
     # request_args = request.args
     # issue_type = request.args["issue_type"]
     # ticket_email = request.args["email"]
-
+    # fields = odoo.env["stock.move.line"].fields_get()
     order_OK = False
     customer_OK = False
+    serial_number_customfieldid = "customfield_10408"
 
     try:
-        serial_number = request.get_json()["serial_number"]
+        serial_number = request.get_json()[f"{serial_number_customfieldid}"]
     except KeyError:
         logging.warning("Request failed (Serial number not found). Returning 404")
-        return ("Request failed (Serial number not found)", 404)
+        return ("Request failed (Serial number not found in request)", 404)
 
     logging.info(f"Jira Service Management: Request received for SN:{serial_number}")
     logging.debug(f"Request json: {request.get_json(silent=False)}")
@@ -70,18 +70,16 @@ def main(request: Request):
     if order_OK and customer_OK:
         logging.info(f"Success, returning order [{order.sale_order.name}] and customer data to JSM")
 
-        orderResponse = buildResponse(order, customer)
-        print(orderResponse.model_dump_json(by_alias=True, exclude_none=True))
+        orderResponseClass = buildResponse(order, customer)
+        orderResponse = orderResponseClass.model_dump_json(by_alias=True, exclude_none=True)
+        print(orderResponse)
 
-        # customerResponse = buildCustomerResponse(customer)
-        # print(customerResponse.model_dump_json(by_alias=True, exclude_none=True))
-
-        return ("Success", 200)
+        return (orderResponse, 200)
 
     # TODO: Implement partial return
     elif order_OK:
         logging.info("Partial success, (Failed obtaining customer data). Only returning order data")
-        return ("Partial success, (Failed obtaining customer data). Only returning order data", 202)
+        return (orderResponse, 202)
 
     elif not (order_OK and customer_OK):
         return (f"Failed retrieving order and customer data on {serial_number}", 404)
