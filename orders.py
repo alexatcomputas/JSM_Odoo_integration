@@ -76,7 +76,8 @@ class Order:
         filters = _create_odoo_filters("lot_name", lot_ids)
         matching_record_ids = model.search(filters)
 
-        # If no records found in stock.move.line, check for a lot reference in production.lot instead
+        # If no records found in stock.move.line, perform alternative approach:
+        # check for a lot reference in production.lot.name instead
         if not matching_record_ids:
             logging.info("No records found in stock.move.line with the specified lot name. Checking production.lot for lot reference.")
 
@@ -109,7 +110,7 @@ class Order:
                     company_id=record.get("company_id", None),
                 )
 
-                # results.append(SML_instance)
+                # results.append(stockmoveline)
                 logging.info(f"Product ID: {stockmoveline.product_id}, Picking ID: {stockmoveline.picking_id}")
                 break
 
@@ -127,7 +128,7 @@ class Order:
                 logging.info(f"Sale ID: {sale_id[0]}")
                 return StockPicking(id=picking_id, sale_id=sale_id)
 
-        logging.warning("No stock.picking sale_id record found for the given picking_id {picking_id}")
+        logging.warning(f"No stock.picking sale_id record found for the given picking_id {picking_id}")
         return StockPicking(id=-1, sale_id=-1)
 
     def _get_SaleOrderLine(self, order_id: int, product_id: int) -> SaleOrderLine:
