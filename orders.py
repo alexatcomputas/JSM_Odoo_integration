@@ -78,32 +78,24 @@ class Order:
 
         # If no records found in stock.move.line, check for a lot reference in production.lot instead
         if not matching_record_ids:
-            logging.info(
-                "No records found in stock.move.line with the specified lot name. Checking production.lot for lot reference."
-            )
+            logging.info("No records found in stock.move.line with the specified lot name. Checking production.lot for lot reference.")
 
-            filters = _create_odoo_filters("lot_id", lot_ids)
+            filters = _create_odoo_filters("name", lot_ids)
             lot_records = self.production_lot_model.search_read(filters)
 
             if lot_records:
                 filters = [("lot_id", "=", lot_records[0]["id"])]
                 matching_record_ids = model.search(filters)
             else:
-                logging.warning(
-                    f"No production.lot record found either for serial number {lot_name_to_search}. Exiting."
-                )
+                logging.warning(f"No production.lot record found either for serial number {lot_name_to_search}. Exiting.")
                 return error_model
 
         if not matching_record_ids:
-            logging.info(
-                f"Error retrieving data in stock.move.line with specified lot name/serial number [{lot_name_to_search}]."
-            )
+            logging.info(f"Error retrieving data in stock.move.line with specified lot name/serial number [{lot_name_to_search}].")
             return error_model
 
         if matching_record_ids:
-            records_data = model.read(
-                matching_record_ids, ["lot_name", "product_id", "picking_id", "state", "origin", "company_id"]
-            )
+            records_data = model.read(matching_record_ids, ["lot_name", "product_id", "picking_id", "state", "origin", "company_id"])
 
         # results = []
         for record in records_data:
