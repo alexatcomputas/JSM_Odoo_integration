@@ -10,9 +10,6 @@ from odoo import Odoo
 from orders import Order
 from response import buildResponse
 
-# import re
-
-
 if ENVIRONMENT == "local":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
     logging.info("### Local environment detected ###")
@@ -20,7 +17,7 @@ else:
     logging.basicConfig(level=logging.INFO, format="%(name)s - %(levelname)s - %(message)s")
     logging.info("### Non-local environment detected ###")
 
-odoo = Odoo
+# Odoo = Odoo
 
 
 @functions_framework.http
@@ -46,7 +43,7 @@ def main(request: Request):
 
     # Get order data #####
     try:
-        order = Order(odoo=odoo, serial_number=serial_number)
+        order = Order(odoo=Odoo, serial_number=serial_number)
         order.get_order_data()
         order_OK = True
     except Exception as e:
@@ -65,7 +62,7 @@ def main(request: Request):
 
     # Get customer data #####
     try:
-        customer = GetCustomer(odoo=odoo, partner_id=order.sale_order.partner_id[0])
+        customer = GetCustomer(odoo=Odoo, partner_id=order.sale_order.partner_id[0])
         customer_OK = True
 
     except Exception as e:
@@ -78,9 +75,12 @@ def main(request: Request):
         else:
             logging.error(f"Error fetching customer data from serial number {serial_number}:\n### Stack trace: ###\n{e}")
 
+    if not order.sale_order:
+        logging.info("Can't build response. Could not find order data")
+        return ("Can't build response. Could not find order data", 404)
+
     if order_OK and customer_OK:
         logging.info(f"Success, returning order [{order.sale_order.name}] and customer data to JSM")
-        # orderResponseClass = buildResponse(customer, order)
         orderResponse = buildResponse(customer, order).model_dump_json(by_alias=True, exclude_none=False)
 
         return (orderResponse, 200)
@@ -88,13 +88,12 @@ def main(request: Request):
     # Partial return
     elif order_OK:
         logging.info("Partial success, (Failed obtaining customer data). Only returning order data")
-        # orderResponseClass = buildResponse(customer=customer)
-        orderResponse = buildResponse(customer=customer).model_dump_json(by_alias=True, exclude_none=False)
+        orderResponse = buildResponse(customer=None, order=order).model_dump_json(by_alias=True, exclude_none=False)
 
         return (orderResponse, 202)
 
     elif not (order_OK and customer_OK):
-        return (f"SN Error:Failed retrieving order and customer data on {serial_number}", 404)
+        return (f"SN Error:Failed retrieving order and customer data on {serial_number}", 400)
 
     else:
         return ("Internal server error", 500)
