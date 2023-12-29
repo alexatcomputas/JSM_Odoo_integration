@@ -21,14 +21,14 @@ class StockMoveLine(BaseModel):
 # Table: res.partner
 class Customer(BaseModel):
     id: int
-    email: EmailStr
-    name: StrAnnotatedorFalse
-    street: StrAnnotatedorFalse
-    city: StrAnnotatedorFalse
-    postal_code: StrAnnotatedorFalse
-    state: ListIntStrorBool
-    country: ListIntStrorBool
-    customer_reference: StrAnnotatedorFalse
+    email: Optional[EmailStr] = None
+    name: Optional[StrAnnotatedorFalse] = None
+    street: Optional[StrAnnotatedorFalse] = None
+    city: Optional[StrAnnotatedorFalse] = None
+    postal_code: Optional[StrAnnotatedorFalse] = None
+    state: Optional[ListIntStrorBool] = None
+    country: Optional[ListIntStrorBool] = None
+    customer_reference: Optional[StrAnnotatedorFalse] = None
     is_company: Optional[bool] = None
 
 
