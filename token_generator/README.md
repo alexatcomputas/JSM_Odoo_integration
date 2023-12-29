@@ -25,7 +25,7 @@ Takes a large password and returns severely restricted ID-token that has limited
  --min-instances 0 \
  --max-instances 2 \
  --timeout 120 \
- --set-env-vars='stage_audience'='https://europe-west1-integration-jsm-odoo.cloudfunctions.net/odoo_stage','prod_audience'='https://www.google.com' \
+ --set-env-vars='stage_audience'='https://europe-west1-integration-jsm-odoo.cloudfunctions.net/odoo_stage','prod_audience'='https://europe-west1-integration-jsm-odoo.cloudfunctions.net/odoo_prod' \
   --entry-point main \
   --runtime python311 \
   --trigger-http \

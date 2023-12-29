@@ -14,13 +14,6 @@ audience = {"PROD": PROD_AUDIENCE, "STAGE": STAGE_AUDIENCE}
 
 
 class BadPasswordException(Exception):
-    """Exception raised for errors in the input password.
-
-    Attributes:
-        password -- input password which caused the error
-        message -- explanation of the error
-    """
-
     def __init__(self, password, message="Password is incorrect"):
         self.password = password
         self.message = message
@@ -38,7 +31,7 @@ def validate_pass(password) -> bool:
         logging.info("Password is correct")
         return True
     else:
-        logging.info(f"Password is incorrect. Pass: {password}")
+        logging.info(f"Password is incorrect.")
         raise BadPasswordException(password)
 
 
@@ -58,14 +51,14 @@ def get_credentials(env: str) -> service_account.Credentials:
         logging.info("Getting credentials from env")
         ENV = env.upper()
         credentials_str = os.environ.get(f"{ENV}_CREDENTIALS")
-        logging.info(f"Got credentials from env {credentials_str}")
+        # logging.debug(f"Got credentials from env {credentials_str}")
 
     if not credentials_str:
-        logging.info(f"Getting credentials failed, env = {env}")
+        logging.warning(f"Getting credentials failed, env = {env}")
         raise Exception("Credentials not found/Env variable not set")
 
     credentials_info = json.loads(credentials_str)
-    logging.info(f"Credentials parsed: {credentials_info}")
+    # logging.debug(f"Credentials parsed: {credentials_info}")
 
     credentials = service_account.Credentials.from_service_account_info(
         credentials_info, scopes=["https://www.googleapis.com/auth/cloud-platform"]
@@ -89,9 +82,7 @@ def create_id_token(credentials, environment: str = "STAGE", aud: dict = audienc
     credentials = credentials.with_scopes(["https://www.googleapis.com/auth/cloud-platform"])
 
     audience_url = aud[env]
-    logging.info(f"audience_url: {audience_url}")
 
-    logging.info(f"Creating signed jwt for {credentials.service_account_email}")
     signed_jwt = jwt.encode(
         credentials.signer,
         {
@@ -112,13 +103,13 @@ def create_id_token(credentials, environment: str = "STAGE", aud: dict = audienc
 
     if response:
         if response.status_code == 200:
-            logging.info(f"Response: {response.status_code} {response.text}")
+            logging.info(f"Response: 200 - SUCCESS")
         else:
-            logging.error(f"Response: {response.status_code} {response.text}")
+            logging.error(f"Response: Failed: {response.status_code}")
+            # logging.debug(f"Response: {response.status_code} {response.text}")
     else:
-        logging.error("Request failed")
+        logging.error("JWT Request failed")
 
     response_data = response.json()
-    logging.info(f"Response data: {response_data}")
 
     return response_data["id_token"]

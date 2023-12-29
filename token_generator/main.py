@@ -27,9 +27,6 @@ def main(request: Request):
 
     logging.info("Request received, starting up...")
 
-    # for header, value in request.headers.items():
-    #     logging.info(f"{header}: {value}")
-
     try:
         password = request.headers.get("password", None)
         environment = request.headers.get("environment", None)
