@@ -17,7 +17,7 @@ class Order:
         self.error_models = SimpleNamespace()
         self.error_models.stockmoveline = StockMoveLine(lot_name="-1", product_id=[-1, ""], picking_id=[-1, ""])
         self.error_models.stockpicking = StockPicking(id=-1, sale_id=[-1, ""])
-        self.error_models.salesorderline = SaleOrderLine(id=-1, order_id=-1, product_id=-1)
+        self.error_models.saleorderline = SaleOrderLine(id=-1, order_id=-1, product_id=-1)
         self.error_models.saleorder = SaleOrder(id=-1, name="")
 
         # Initialize instance attributes to store data
@@ -45,17 +45,41 @@ class Order:
         for item in self.stockmoveline:
             if item.picking_id:
                 self.picking_ids.append(item.picking_id[0])
-
-        # self.product_id = self.stockmoveline.product_id[0] if self.stockmoveline.product_id else None
-        for item in self.stockmoveline:
             if item.product_id:
                 self.product_ids.append(item.product_id[0])
 
-        self.stockpicking = self.get_StockPicking(self.picking_ids)
-        self.sale_id = self.stockpicking.sale_id[0]
+        temp_picking_ids = self.picking_ids.copy()
+        for picking_id in self.picking_ids:
+            self.stockpicking = self.get_StockPicking(picking_id)
+            if self.stockpicking == self.error_models.stockpicking:
+                temp_picking_ids.pop(temp_picking_ids.index(picking_id))
+                logging.warning(
+                    f"""No stock.picking sale_id record found for the given picking_id {picking_id}.
+                                Continuing to search with the rest of the records [{temp_picking_ids}]"""
+                )
 
-        self.so_line = self.get_SaleOrderLine(order_id=self.sale_id, product_id=self.product_id)
+        self.sale_id = self.stockpicking.sale_id[0]
         self.sale_order = self.get_sale_order(order_id=self.sale_id)
+
+        # Get sale order line, if multiple products: Check them all and return the one which has "Kit" in its name
+        # If no "Kit" Item, concatenate all names.
+        so_line_items = []
+        for product_id in self.product_ids:
+            so_line_item = self.get_SaleOrderLine(order_id=self.sale_id, product_id=product_id)
+            if so_line_item and so_line_item != self.error_models.saleorderline:
+                so_line_items.append(so_line_item)
+
+        # Check that the product name contains "Kit"
+        for so_line_item in so_line_items:
+            if "Kit" in so_line_item.name:
+                self.so_line = so_line_item
+                break
+
+        if not self.so_line:
+            self.so_line = so_line_items
+
+        if not self.so_line:
+            raise ValueError(f"No sale order line found for product {self.sale_id}")
 
     def create_odoo_filters(self, field_name: str, lot_ids: list[str]) -> list:
         # Initialize filters with the company condition
@@ -218,3 +242,6 @@ class Order:
             )
 
             return sale_order_data
+
+    def get_product():
+        pass
