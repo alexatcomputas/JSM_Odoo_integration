@@ -11,6 +11,6 @@ Takes a large password and returns severely restricted ID-token that has limited
 - Function url: POST [GCP cloud function URL](https://europe-west1-integration-jsm-odoo.cloudfunctions.net/token_generator)
 - Required headers:
   - password: strong password
-  - environment [stage|prod]
+  - environment [stage | prod]
 - Returns:
   - ID token from JWT grant (1h duration, non-changeable as per GCP standards)
