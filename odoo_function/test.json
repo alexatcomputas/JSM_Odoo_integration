@@ -1,0 +1,13 @@
+{
+    "webResponse": {
+        "body": {
+            "SalesOrdernumber": "SO4312",
+            "SentfromdatefromBGL": "2021-08-31 13:02:44",
+            "Customerreference": "550",
+            "Productdescription": "[7090043790672] Huddly L1 Kit incl. USB Adapter, Wall & Shelf Mount, 2 m Ethernet Cable",
+            "Orderedquantity": 8.0,
+            "Unitprice": 960.0,
+            "Huddlycustomer": "Comm-Tec S.r.l.  \nVIA PROVENTA 236  \nFAENZA  \n48018  \nRavenna (IT)  \nItaly"
+        }
+    }
+}

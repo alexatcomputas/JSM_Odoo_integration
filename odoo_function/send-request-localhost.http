@@ -1,0 +1,16 @@
+POST http://0.0.0.0:8080/
+content-type: application/json
+
+{"fields":{
+    "issue_type": "bug",
+    "email": "test@example.com",
+    //"customfield_10408":"52129A0001,52132B0127"
+    //"customfield_10408":"52129A0001"
+    //"customfield_10408":"52132B0127"
+    "customfield_10408":"G41I00002"
+    //"customfield_10408":"43J00505"
+    //"customfield_10408":"52214C0001,52213B0260"
+    //"customfield_10408":"52214C0001"
+    //"customfield_10408":"52213B0260"
+    }
+}

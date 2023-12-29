@@ -1,0 +1,10 @@
+{
+    "flake8.args": [
+        "--max-line-length=140",
+        "--exclude=venv,__pycache__"
+    ],
+    "black-formatter.args": [
+        "--line-length",
+        "140",
+    ]
+}
