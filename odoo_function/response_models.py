@@ -14,10 +14,10 @@ class returnModel(BaseModel):
         serialization_alias="SentfromdatefromBGL", example="2021-08-31 13:02:44", default=None
     )
     sale_order__sent_Flex: Optional[StrAnnotated] = Field(
-        serialization_alias="SentfromdatefromFlex", example="2021-08-31 13:02:44", default=None
+        serialization_alias="SentfromdatefromFlex", example="2021-08-31 13:02:44", default=""
     )
     sale_order__sent_Hapro: Optional[StrAnnotated] = Field(
-        serialization_alias="SentfromdatefromHapro", example="2021-08-31 13:02:44", default=None
+        serialization_alias="SentfromdatefromHapro", example="2021-08-31 13:02:44", default=""
     )
     sale_order__customer_ref: Optional[StrAnnotated] = Field(serialization_alias="Customerreference", example="550", default=None)
     sale_order_line__name: Optional[StrAnnotated] = Field(
