@@ -1,43 +1,30 @@
 import logging
-import re
 
 import functions_framework
-import google.cloud.logging
 from flask import Request
 from werkzeug.exceptions import BadRequest
 
 from customer import GetCustomer
-from environment import AUTH_TOKEN, ENVIRONMENT
+from environment import ENVIRONMENT
 from odoo import Odoo
 from orders import Order
 from response import buildResponse
 
+# import re
+
+
 if ENVIRONMENT == "local":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    logging.info("### Local environment detected ###")
 else:
-    logging_client = google.cloud.logging.Client()
-    logging_client.setup_logging()
+    logging.basicConfig(level=logging.INFO, format="%(name)s - %(levelname)s - %(message)s")
+    logging.info("### Non-local environment detected ###")
 
 odoo = Odoo
 
 
 @functions_framework.http
 def main(request: Request):
-    token_valid = False
-    incoming_token = None
-
-    # Extract the token from the request headers
-    incoming_token = request.headers.get("Authorization")
-
-    # Validate the token format (example: Bearer [token])
-    if incoming_token and re.match(r"^Bearer [A-Za-z0-9\-_=]+\.[A-Za-z0-9\-_=]+\.[A-Za-z0-9\-_=]+$", incoming_token):
-        token = incoming_token.replace("Bearer ", "")  # Extract the token part
-        if token == AUTH_TOKEN:
-            token_valid = True
-
-    if not token_valid:
-        return ("Invalid token or invalid token format", 401)
-
     order_OK = False
     customer_OK = False
     serial_number_customfieldid = "customfield_10408"
@@ -66,7 +53,7 @@ def main(request: Request):
         # Mandatory objects to populate for a meaningful order data response:
         # Order.picking_id -> Order.sale_id -> Order.product_id
         if order.picking_ids and not order.sale_id:
-            logging.error(f"Error fetching order data on SN {order.serial_number} and picking id {order.picking_id}")
+            logging.error(f"Error fetching order data on SN {order.serial_number} and picking id {order.picking_ids}")
         elif order.sale_id and not order.product_ids:
             logging.error(
                 f"""Error fetching product data from picking model on SN:{order.serial_number},
