@@ -30,7 +30,7 @@ Key: sale_order_id
 - Customer (partner_id): list[3133, 'Company name Inc, Person']
 
 ## order_line_model = odoo.env['sale.order.line']
-Key: 
+Key:
 
 
 
@@ -39,3 +39,19 @@ Key:
 key: id (int)
 other identifier: email
 fields_to_fetch = ["name", "street", "city", "zip", "state_id", "country_id", "ref", "is_company"]
+
+## Deploy
+### PROD
+>gcloud functions deploy odoo_prod \
+ --gen2 \
+ --region=europe-west1 \
+ --source=. \
+ --min-instances 0 \
+ --max-instances 6 \
+ --timeout 540 \
+ --entry-point main \
+ --runtime python311 \
+ --trigger-http \
+ --set-secrets= \
+ --service-account odoo-function-prod@integration-jsm-odoo.iam.gserviceaccount.com \
+ --project integration-jsm-odoo
