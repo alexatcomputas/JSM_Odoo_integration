@@ -1,7 +1,7 @@
 from customer import GetCustomer
 from models import Customer
 from orders import Order
-from response_models import returnModel
+from response_models import responseModel
 
 
 def strip_invalid_chars(string: str) -> str:
@@ -12,20 +12,22 @@ def strip_invalid_chars(string: str) -> str:
         return string
 
     else:
-        return string.replace(",", ".").replace(":", ";").replace("..", ".")
+        return string.replace("..", ".")
+        # return string.replace(",", ".").replace("..", ".")
+        # return string.replace(",", ".").replace(":", ";").replace("..", ".")
 
 
 # Build the response body based on the data we got from the Odoo db
-def buildResponse(customer: GetCustomer = None, order: Order = None) -> returnModel:
+def buildResponse(customer: GetCustomer = None, order: Order = None) -> responseModel:
     if not (customer or order):
-        return ("Error building response. Missing customer and order data", 404)
+        return ("Error building response. Missing customer or order data", 404)
 
     if not customer:
         customer = Customer(id=1, name="Unknown")
 
     if isinstance(order.so_line, list):
         # I'm doing this in a rush please forgive me.
-        # dash-concatenate each objects name attribute into one str (eg. "Name1, Name2, Name3")
+        # dash-concatenate each objects name attribute into one str (eg. "Name1 -  Name2 - Name3")
         name = " - ".join([obj.name for obj in order.so_line])
         quantity = order.so_line[0].quantity
         price_unit = order.so_line[0].price_unit
@@ -63,7 +65,7 @@ def buildResponse(customer: GetCustomer = None, order: Order = None) -> returnMo
         if data_fields[key] is False:
             data_fields[key] = None
 
-    return returnModel(
+    return responseModel(
         sale_order__name=data_fields["sale_order__name"],
         sale_order__sent_BGL=data_fields["sale_order__sent_BGL"],
         sale_order__sent_Flex=data_fields["sale_order__sent_Flex"],
