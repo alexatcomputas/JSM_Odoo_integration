@@ -36,6 +36,7 @@ class Order:
 
         if self.stockmoveline == self.error_models.stockmoveline:
             logging.warning(f"No records found in 'stock.move.line' with the specified serial number/lot name: [{self.serial_number}].")
+            logging.warning("Returning 404")
             return
         # Get the picking id's. Ignore items with False
         for item in self.stockmoveline:
