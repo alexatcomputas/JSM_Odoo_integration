@@ -23,14 +23,15 @@ else:
 def main(request: Request):
     order_OK = False
     customer_OK = False
-    serial_number_customfieldid = "customfield_10408"
+    # serialnumber_fieldname = "customfield_10408"
+    serialnumber_fieldname = "serialnumber"
 
     try:
-        serial_number = request.get_json(silent=False)["fields"][serial_number_customfieldid]
+        serial_number = request.get_json(silent=False)["fields"][serialnumber_fieldname]
 
     except KeyError:
-        logging.warning(f"Request failed (Serial number [{serial_number}] not found). 404")
-        return ("Request failed (Serial number not found in request)", 404)
+        logging.warning("Misconfigured request failed (Serial number field not found). 404")
+        return ("Request failed (Serial number field not found in request)", 404)
 
     except BadRequest as e:
         logging.error(f"Request failed (Bad request-> 400)\nRequest: {dump_request()}")
