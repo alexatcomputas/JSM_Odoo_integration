@@ -11,6 +11,7 @@ Created by Computas AS Oslo :smile:
    1. Webrequest number 1:
       - Performs a request to a google cloud function with a strong password and an environment variable (prod/stage). The response (if password is valid) is a token to access the odoo_prod/stage function
    2. Webrequest number 2:
+      - Function url: POST [odoo_prod GCP cloud function](https://europe-west1-integration-jsm-odoo.cloudfunctions.net/odoo_prod)
       - Serial number POST'ed to function with accompanying token attained from previous cloud function. Function performs several searches in Odoo on the models:
         - stock.move.line, production.lot, stock.picking, sale.order, Sale.Order.Line, res.partner
       - Retrieved data is compiled and returned in response to Jira Service Management's automation
