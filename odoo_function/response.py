@@ -34,9 +34,9 @@ def buildResponse(customer: GetCustomer = None, order: Order = None) -> response
 
     data_fields = {
         "sale_order__name": strip_invalid_chars(order.sale_order.name) if order.sale_order.name else None,
-        "sale_order__sent_BGL": strip_invalid_chars(order.sale_order.sent_BGL) if order.sale_order.sent_BGL else None,
-        "sale_order__sent_Flex": strip_invalid_chars(order.sale_order.sent_Flex) if order.sale_order.sent_Flex else None,
-        "sale_order__sent_Hapro": strip_invalid_chars(order.sale_order.sent_Hapro) if order.sale_order.sent_Hapro else None,
+        "sale_order__sent_BGL": strip_invalid_chars(order.sale_order.sent_BGL) if order.sale_order.sent_BGL else "",
+        "sale_order__sent_Flex": strip_invalid_chars(order.sale_order.sent_Flex) if order.sale_order.sent_Flex else "",
+        "sale_order__sent_Hapro": strip_invalid_chars(order.sale_order.sent_Hapro) if order.sale_order.sent_Hapro else "",
         "sale_order__customer_ref": strip_invalid_chars(order.sale_order.customer_ref) if order.sale_order.customer_ref else None,
         "sale_order__tracking_no": strip_invalid_chars(order.sale_order.tracking_no) if order.sale_order.tracking_no else None,
         # sale_order__tracking_no_flex: strip_invalid_chars(order.sale_order.tracking_no_flex)
