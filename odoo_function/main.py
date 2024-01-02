@@ -18,8 +18,6 @@ else:
     logging.basicConfig(level=logging.INFO, format="%(name)s - %(levelname)s - %(message)s")
     logging.info("### Non-local environment detected ###")
 
-# Odoo = Odoo
-
 
 @functions_framework.http
 def main(request: Request):
