@@ -12,13 +12,10 @@ Integration for JSM and Odoo. Takes a JSM webrequest (POST) as input and fetches
 
 	```json
 	{"fields":{
-	    "issue_type": "bug",
-	    "email": "test@example.com",
-	    "customfield_10408":"52129A0001,52132B0127"
+	    "serialnumber":"52129A0001,52132B0127"
 	    }
 	}
 	```
-	- "customfield_10408": \[serial number to search]
 - Requires ID-token from SA:
   - odoo_trigger_stage
     or
@@ -27,29 +24,90 @@ Integration for JSM and Odoo. Takes a JSM webrequest (POST) as input and fetches
 ## Deploy
 ### PROD
 >gcloud functions deploy odoo_prod \
- --gen2 \
- --region=europe-west1 \
- --source=. \
- --min-instances 0 \
- --max-instances 6 \
- --timeout 540 \
- --entry-point main \
- --runtime python311 \
- --trigger-http \
- --set-secrets= \
- --service-account odoo-function-prod@integration-jsm-odoo.iam.gserviceaccount.com \
- --project integration-jsm-odoo
-
->Failed.
-ERROR: (gcloud.functions.deploy) OperationError: code=3, message=Build failed with status: FAILURE and message: *** Error compiling './product.py'...
-  File "./product.py", line 22
-    def _get_
-
+--gen2 \
+--region=europe-west1 \
+--source=. \
+--min-instances 0 \
+--max-instances 4 \
+--timeout 400 \
+--set-secrets= 'odoo_user'=odoo_prod_user:latest,'odoo_pass'=odoo_prod_pass:latest,'odoo_server'=odoo_prod_server:latest,'odoo_db'=odoo_prod_db:latest \
+--entry-point main \
+--runtime python311 -\
+-trigger-http \
+--service-account odoo-function-prod@integration-jsm-odoo.iam.gserviceaccount.com \
+--project integration-jsm-odoo
 
 # Needs restructure:
+
+```mermaid
+erDiagram
+    SEARCH-SERIAL-NUMBERS ||--|{ STOCK-MOVE-LINE : "search by serial number"
+    SEARCH-SERIAL-NUMBERS {
+        string action "Search for serial numbers"
+    }
+
+    STOCK-MOVE-LINE ||--o{ STOCK-PICKING : "picking_id"
+    STOCK-MOVE-LINE {
+        string lot_name
+        int product_id
+        int picking_id
+        string state
+        string origin
+    }
+
+    STOCK-PICKING ||--o{ SALE-ORDER : "sale_id"
+    STOCK-PICKING {
+        int id
+        int sale_id
+    }
+
+    SALE-ORDER ||--o{ RES-PARTNER : "partner_id"
+    SALE-ORDER {
+        int id
+        string name "Order Reference"
+        string x_received_shipment "Sent From Hapro"
+        string delivered_date "Sent From Flex"
+        string sent_from_bgl_date "Sent From BGL"
+        string client_order_ref "Customer Reference"
+        string soform_tracking_no "Tracking No"
+        string x_transporter_trackingno "Tracking No Flex"
+        int partner_id
+    }
+
+    RES-PARTNER ||--o{ RES-COUNTRY-STATE : "state_id"
+    RES-PARTNER ||--o{ RES-COUNTRY : "country_id"
+    RES-PARTNER {
+        int id
+        string street "Street"
+        string city "City"
+        string zip "Zip"
+        int state_id
+        int country_id
+    }
+
+    RES-COUNTRY-STATE {
+        int id
+        string name "State Name"
+    }
+
+    RES-COUNTRY {
+        int id
+        string name "Country Name"
+    }
+
+    SALE-ORDER-LINE ||--o{ SALE-ORDER : "order_id"
+    SALE-ORDER-LINE ||--o{ STOCK-MOVE-LINE : "product_id"
+    SALE-ORDER-LINE {
+        string name "Product Description"
+        float product_uom_qty "Ordered Quantity"
+        float price_unit "Unit Price"
+        int order_id
+        int product_id
+    }
+```
+
 ## Tables and keys
 
-Required data:
 - Part 3:
   - Order Reference
   - Sent From Hapro
@@ -76,13 +134,14 @@ Key: sale_order_id
 - Customer (partner_id): list[3133, 'Company name Inc, Person']
 
 ### order_line_model = odoo.env['sale.order.line']
-Key:
-
-
-
+Key: order_id, product_id
+  - `order_id` (from `sale.order` -> `sale_id`)
+  - `product_id` (from `stock.move.line` -> `product_id`)
+- name: Str
+- product_uom_quantity: Float
+- price_unit: Float
 
 ### 4 odoo.env["res.partner"]
 key: id (int)
 other identifier: email
 fields_to_fetch = ["name", "street", "city", "zip", "state_id", "country_id", "ref", "is_company"]
-
