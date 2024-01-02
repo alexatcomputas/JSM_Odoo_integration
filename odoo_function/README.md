@@ -12,7 +12,7 @@ Created by Computas AS Oslo :smile:
       - Performs a request to a google cloud function with a strong password and an environment variable (prod/stage). The response (if password is valid) is a token to access the odoo_prod/stage function
    2. Webrequest number 2:
       - Serial number POST'ed to function with accompanying token attained from previous cloud function. Function performs several searches in Odoo on the models:
-        - stock.move.line, production.lot, stock.picking, sale.order, Sale.Order.Line
+        - stock.move.line, production.lot, stock.picking, sale.order, Sale.Order.Line, res.partner
       - Retrieved data is compiled and returned in response to Jira Service Management's automation
    3. JSM automation interprets response and saves data into ticket
 - Prioritizes kit names when returning product info. To achieve this without hardcoding product names to prioritize, it simply gets all products associated with the serial number and selects the item that has "Kit" in the name. If no item with "Kit" is found, it will concatenate and return all the associated item names.
