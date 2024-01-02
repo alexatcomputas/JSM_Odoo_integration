@@ -7,7 +7,7 @@ Created by Computas AS Oslo :smile:
 
 ## Special considerations
 1. The integration function has no capability programmed in to write to the database, it can only access odoo to read its content.
-2. 
+2. Data on the serial number is read in and processed and returned in response to the webrequest from Jira's automation
 3. Prioritizes kit names when returning product info. To achieve this without hardcoding product names to prioritize, it simply gets all products associated with the serial number and selects the item that has "Kit" in the name. If no item with "Kit" is found, it will concatenate and return all the associated item names.
 4. Only prod instance is running, stage can be deployed after fixing some SA permissions (access to secrets)
 5. For changing passwords associated with the service, please access and add a secret version in Google Cloud Secrets Manager.
@@ -16,10 +16,9 @@ Created by Computas AS Oslo :smile:
 ### Usage
 
 - POST request
-  - Headers:
-    - Authorization: Bearer [token]
-  - Body:
-
+  - Headers:
+    - Authorization: Bearer [token]
+  - Body:
 	```json
 	{"fields":{
 	    "serialnumber":"52129A0001,52132B0127"
@@ -27,9 +26,9 @@ Created by Computas AS Oslo :smile:
 	}
 	```
 - Requires ID-token from SA:
-  - odoo_trigger_stage
+  - odoo_trigger_stage
     or
-  - odoo_trigger_prod
+  - odoo_trigger_prod
 
 ## Deploy
 ### PROD
