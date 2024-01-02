@@ -33,12 +33,12 @@ def main(request: Request):
         return ("Request failed (Serial number not found in request)", 404)
 
     except BadRequest as e:
-        logging.error(f"Request failed (Bad request, retuning 400)\nRequest:\n{dump_request()}")
+        logging.error(f"Request failed (Bad request, retuning 400)\nRequest: {dump_request()}")
         logging.error(f"## Exception:##\n{e}")
         return ("Invalid JSON", 400)
 
     except Exception as e:
-        logging.error(f"Request failed. Returning 500:\nRequest:\n{dump_request()}")
+        logging.error(f"Request failed. Returning 500:\nRequest: {dump_request()}")
         logging.error(f"## Exception:##\n{e}")
         return ("Request failed (Unknown exception. Error logged). Returning 500", 500)
 
@@ -92,6 +92,7 @@ def main(request: Request):
     # Partial return
     elif order_OK:
         logging.info("Partial success, (Failed obtaining customer data). Only returning order data")
+        logging.error(f"Request: {dump_request()}")
         orderResponse = buildResponse(customer=None, order=order).model_dump_json(by_alias=True, exclude_none=False)
 
         return (orderResponse, 202)
@@ -100,6 +101,8 @@ def main(request: Request):
         return (f"SN Error:Failed retrieving order and customer data on {serial_number}", 400)
 
     else:
+        logging.error("Internal server error, 500")
+        logging.error(f"Request: {dump_request()}")
         return ("Internal server error", 500)
 
 
