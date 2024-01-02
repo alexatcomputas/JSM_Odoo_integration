@@ -9,6 +9,7 @@ from environment import ENVIRONMENT
 from odoo import Odoo
 from orders import Order
 from response import buildResponse
+from util import dump_request
 
 if ENVIRONMENT == "local":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
@@ -28,14 +29,19 @@ def main(request: Request):
 
     try:
         serial_number = request.get_json(silent=False)["fields"][serial_number_customfieldid]
+
     except KeyError:
         logging.warning("Request failed (Serial number not found). Returning 404")
         return ("Request failed (Serial number not found in request)", 404)
+
     except BadRequest as e:
-        logging.error(f"Request failed (Bad request. Error logged). Returning 400\n### Stack trace: ###\n{e}")
+        logging.error(f"Request failed (Bad request, retuning 400)\nRequest:\n{dump_request()}")
+        logging.error(f"## Exception:##\n{e}")
         return ("Invalid JSON", 400)
+
     except Exception as e:
-        logging.error(f"Request failed (Any other Exception)\n### Stack trace: ###\n{e}")
+        logging.error(f"Request failed. Returning 500:\nRequest:\n{dump_request()}")
+        logging.error(f"## Exception:##\n{e}")
         return ("Request failed (Unknown exception. Error logged). Returning 500", 500)
 
     logging.info(f"Jira Service Management: Request received for SN:{serial_number}")
