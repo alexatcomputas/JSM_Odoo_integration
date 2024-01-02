@@ -1,8 +1,6 @@
 import os
 
-# project_id = "690554692474"
 ENVIRONMENT = os.getenv("environment", default="local")
-# AUTH_TOKEN = os.getenv("auth_token")
 
 
 def get_secret_name(env=ENVIRONMENT, type="user"):
