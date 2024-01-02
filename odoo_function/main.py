@@ -23,7 +23,7 @@ else:
 def main(request: Request):
     order_OK = False
     customer_OK = False
-    # serialnumber_fieldname = "customfield_10408"
+
     serialnumber_fieldname = "serialnumber"
 
     try:
@@ -50,7 +50,9 @@ def main(request: Request):
     try:
         order = Order(odoo=Odoo, serial_number=serial_number)
         order.get_order_data()
-        order_OK = True
+        if not order.stockmoveline == order.error_models.stockmoveline:
+            order_OK = True
+
     except Exception as e:
         # Mandatory objects to populate for a meaningful order data response:
         # Order.picking_id -> Order.sale_id -> Order.product_id
@@ -64,6 +66,10 @@ def main(request: Request):
 
         logging.error(f"### Stack trace: ###\n{e}")
         return (f"Failed obtaining order data on serial number {order.serial_number}. Exiting", 500)
+
+    if not order.sale_order:
+        logging.info("Can't build response. Could not find order data")
+        return ("Serial number not found. Can't build response", 404)
 
     # Get customer data #####
     try:
@@ -79,10 +85,6 @@ def main(request: Request):
                 )
         else:
             logging.error(f"Error fetching customer data from serial number {serial_number}:\n### Stack trace: ###\n{e}")
-
-    if not order.sale_order:
-        logging.info("Can't build response. Could not find order data")
-        return ("Can't build response. Could not find order data", 404)
 
     if order_OK and customer_OK:
         logging.info(f"Success, returning order [{order.sale_order.name}] and customer data to JSM")
