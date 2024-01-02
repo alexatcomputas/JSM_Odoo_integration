@@ -45,7 +45,7 @@ Created by Computas AS Oslo :smile:
 --service-account odoo-function-prod@integration-jsm-odoo.iam.gserviceaccount.com \
 --project integration-jsm-odoo
 
-# Needs restructure:
+# Data structure
 
 ```mermaid
 erDiagram
