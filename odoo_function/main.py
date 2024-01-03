@@ -53,6 +53,10 @@ def main(request: Request):
         if not order.stockmoveline == order.error_models.stockmoveline:
             order_OK = True
 
+    except ValueError as ve:
+        logging.error("Returning ValueError")
+        return (f"Failed obtaining order data on serial number {order.serial_number}. Error: {ve}", 404)
+
     except Exception as e:
         # Mandatory objects to populate for a meaningful order data response:
         # Order.picking_id -> Order.sale_id -> Order.product_id
@@ -65,11 +69,11 @@ def main(request: Request):
             )
 
         logging.error(f"### Stack trace: ###\n{e}")
-        return (f"Failed obtaining order data on serial number {order.serial_number}. Exiting", 500)
+        return (f"Failed obtaining order data on serial number {order.serial_number}. Exiting", 404)
 
     if not order.sale_order:
-        logging.info("Can't build response. Could not find order data")
-        return ("Serial number not found. Can't build response", 404)
+        logging.info("Serial number not found. Order data can't be built")
+        return ("Serial number not found", 404)
 
     # Get customer data #####
     try:
