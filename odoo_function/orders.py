@@ -9,8 +9,8 @@ from models import SaleOrder, SaleOrderLine, StockMoveLine, StockPicking
 class Order:
     def __init__(self, odoo: ODOO, serial_number: str):
         self.odoo = odoo
-        self.production_lot_model = odoo.env["stock.production.lot"]
         self.stock_move_line_model = odoo.env["stock.move.line"]
+        self.production_lot_model = odoo.env["stock.production.lot"]
         self.picking_model = odoo.env["stock.picking"]
         self.sale_order_model = odoo.env["sale.order"]
         self.order_line_model = odoo.env["sale.order.line"]
@@ -45,15 +45,21 @@ class Order:
             if item.product_id:
                 self.product_ids.append(item.product_id[0])
 
-        temp_picking_ids = self.picking_ids.copy()
-        for picking_id in self.picking_ids:
-            self.stockpicking = self.get_StockPicking(picking_id)
-            if self.stockpicking == self.error_models.stockpicking:
-                temp_picking_ids.pop(temp_picking_ids.index(picking_id))
-                logging.warning(
-                    f"""No stock.picking sale_id record found for the given picking_id {picking_id}.
-                                Continuing to search with the rest of the records [{temp_picking_ids}]"""
-                )
+        # Proceed if picking id's are found, else exit
+        if self.picking_ids:
+            temp_picking_ids = self.picking_ids.copy()
+            for picking_id in self.picking_ids:
+                self.stockpicking = self.get_StockPicking(picking_id)
+                if self.stockpicking == self.error_models.stockpicking:
+                    temp_picking_ids.pop(temp_picking_ids.index(picking_id))
+                    logging.warning(
+                        f"""No stock.picking sale_id record found for the given picking_id {picking_id}.
+                                    Continuing to search with the rest of the records [{temp_picking_ids}]"""
+                    )
+        else:
+            logging.warning(f"No picking ids found with the specified serial number/lot name: [{self.serial_number}].")
+            logging.warning("Returning 404")
+            raise ValueError(f"No picking ids found with the specified serial number/lot name: [{self.serial_number}].")
 
         self.sale_id = self.stockpicking.sale_id[0]
         self.sale_order = self.get_sale_order(order_id=self.sale_id)
@@ -148,7 +154,8 @@ class Order:
 
         if not matching_record_ids:
             logging.info(
-                f"Error retrieving data in stock.move.line/production lot with specified lot name/serial number [{lot_name_to_search}]."
+                f"""Could not find any matching record data in stock.move.line/production lot with
+                specified lot name/serial number [{lot_name_to_search}]."""
             )
             return error_model
 
