@@ -51,14 +51,12 @@ def get_credentials(env: str) -> service_account.Credentials:
         logging.info("Getting credentials from env")
         ENV = env.upper()
         credentials_str = os.environ.get(f"{ENV}_CREDENTIALS")
-        # logging.debug(f"Got credentials from env {credentials_str}")
 
     if not credentials_str:
         logging.warning(f"Getting credentials failed, env = {env}")
         raise Exception("Credentials not found/Env variable not set")
 
     credentials_info = json.loads(credentials_str)
-    # logging.debug(f"Credentials parsed: {credentials_info}")
 
     credentials = service_account.Credentials.from_service_account_info(
         credentials_info, scopes=["https://www.googleapis.com/auth/cloud-platform"]
