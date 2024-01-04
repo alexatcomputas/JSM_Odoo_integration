@@ -18,6 +18,10 @@ else:
     logging.basicConfig(level=logging.INFO, format="%(name)s - %(levelname)s - %(message)s")
     logging.info("### Non-local environment detected ###")
 
+# from product import *
+
+# from traceability import *
+
 
 @functions_framework.http
 def main(request: Request):
