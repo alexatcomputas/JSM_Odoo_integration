@@ -4,6 +4,7 @@ from types import SimpleNamespace
 from odoorpc import ODOO
 
 from models import SaleOrder, SaleOrderLine, StockMoveLine, StockPicking
+from product import Products
 
 
 class Order:
@@ -27,6 +28,7 @@ class Order:
         self.product_ids = []
         self.sale_id = None
         self.stockpicking = None
+        self.products = []
         self.so_line = None
         self.sale_order = None
 
@@ -38,12 +40,23 @@ class Order:
             logging.warning(f"No records found in 'stock.move.line' with the specified serial number/lot name: [{self.serial_number}].")
             logging.warning("Returning 404")
             return
-        # Get the picking id's. Ignore items with False
+
+        # Get the picking id's. Ignore items with picking_id False
         for item in self.stockmoveline:
             if item.picking_id:
                 self.picking_ids.append(item.picking_id[0])
             if item.product_id:
                 self.product_ids.append(item.product_id[0])
+
+        # TODO: Get the product name for the product_id which has more than one serial number
+        for item in self.stockmoveline:
+            # split lot_name string by comma into temp list
+            lotnames = item.lot_name.split(",")
+            if len(lotnames) > 1:
+                self.products = Products(product_ids=item.product_id[0])
+                break
+            else:
+                self.products = self.products.append(Products(product_ids=item.product_id[0]))
 
         # Proceed if picking id's are found, else exit
         if self.picking_ids:
@@ -73,10 +86,10 @@ class Order:
                 so_line_items.append(so_line_item)
 
         # Check that the product name contains "Kit"
-        for so_line_item in so_line_items:
-            if "Kit" in so_line_item.name:
-                self.so_line = so_line_item
-                break
+        # for so_line_item in so_line_items:
+        #     if "Kit" in so_line_item.name:
+        #         self.so_line = so_line_item
+        #         break
 
         if not self.so_line:
             self.so_line = so_line_items

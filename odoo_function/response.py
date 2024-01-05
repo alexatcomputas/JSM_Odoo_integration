@@ -47,6 +47,7 @@ def buildResponse(customer: GetCustomer = None, order: Order = None) -> response
         "res_partner__postal_code": strip_invalid_chars(customer.postal_code) if customer.postal_code else "",
         "res_partner__state": strip_invalid_chars(customer.state[1]) if customer.state else "",
         "res_partner__country": strip_invalid_chars(customer.country[1]) if customer.country else "",
+        "product_product__name": strip_invalid_chars(order.products.products[0].name) if order.products.products else "",
     }
 
     if isinstance(order.so_line, list):
@@ -82,4 +83,5 @@ def buildResponse(customer: GetCustomer = None, order: Order = None) -> response
         res_partner__postal_code=data_fields["res_partner__postal_code"],
         res_partner__state=data_fields["res_partner__state"],
         res_partner__country=data_fields["res_partner__country"],
+        product_product__name=data_fields["product_product__name"],
     )

@@ -64,5 +64,5 @@ class SaleOrderLine(BaseModel):
 class Product(BaseModel):
     id: int
     name: Optional[StrAnnotated] = None
-    barcode: Optional[StrAnnotated] = None
+    barcode: Optional[StrAnnotatedorFalse] = None
     # alternative_barcodes: Optional[StrAnnotated] = None
