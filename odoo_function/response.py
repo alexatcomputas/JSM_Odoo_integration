@@ -1,7 +1,7 @@
 from customer import GetCustomer
 from models import Customer
 from orders import Order
-from response_models import responseModel
+from response_models import ResponseModel
 
 
 def strip_invalid_chars(string: str) -> str:
@@ -18,12 +18,22 @@ def strip_invalid_chars(string: str) -> str:
 
 
 # Build the response body based on the data we got from the Odoo db
-def buildResponse(customer: GetCustomer = None, order: Order = None) -> responseModel:
+def buildResponse(customer: GetCustomer = None, order: Order = None) -> ResponseModel:
     if not (customer or order):
         return ("Error building response. Missing customer or order data", 404)
 
     if not customer:
         customer = Customer(id=1, name="Unknown")
+
+    def concatenate_product_names(products: list):
+        """
+        Concatenates the names of all products in the order.
+
+        :param order: Order object with a list of Product objects.
+        :return: A string with all product names concatenated.
+        """
+        # Using a list comprehension to extract names and 'join' to concatenate them
+        return ", ".join(product.name for product in products)
 
     if isinstance(order.so_line, list):
         # I'm doing this in a rush please forgive me.
@@ -47,7 +57,7 @@ def buildResponse(customer: GetCustomer = None, order: Order = None) -> response
         "res_partner__postal_code": strip_invalid_chars(customer.postal_code) if customer.postal_code else "",
         "res_partner__state": strip_invalid_chars(customer.state[1]) if customer.state else "",
         "res_partner__country": strip_invalid_chars(customer.country[1]) if customer.country else "",
-        "product_product__name": strip_invalid_chars(order.products.products[0].name) if order.products.products else "",
+        "product_product__name": strip_invalid_chars(concatenate_product_names(order.products)) if order.products else "",
     }
 
     if isinstance(order.so_line, list):
@@ -66,7 +76,7 @@ def buildResponse(customer: GetCustomer = None, order: Order = None) -> response
         if data_fields[key] is False:
             data_fields[key] = ""
 
-    return responseModel(
+    return ResponseModel(
         sale_order__name=data_fields["sale_order__name"],
         sale_order__sent_BGL=data_fields["sale_order__sent_BGL"],
         sale_order__sent_Flex=data_fields["sale_order__sent_Flex"],

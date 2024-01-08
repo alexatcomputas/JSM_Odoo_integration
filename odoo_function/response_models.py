@@ -8,7 +8,7 @@ ListIntStr = list[Union[int, StrAnnotated]]
 ListIntStrorBool = Union[ListIntStr, bool]
 
 
-class responseModel(BaseModel):
+class ResponseModel(BaseModel):
     sale_order__name: StrAnnotated = Field(serialization_alias="SalesOrdernumber", example="SO4312")
     sale_order__sent_BGL: Optional[StrAnnotated] = Field(
         serialization_alias="SentfromdatefromBGL", example="2021-08-31 13:02:44", default=None
