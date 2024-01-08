@@ -88,8 +88,8 @@ class Order:
         if not self.so_line:
             self.so_line = so_line_items
 
-        if not self.so_line:
-            raise ValueError(f"No sale order line found for product {self.sale_id}")
+        # if not self.so_line:
+        # raise ValueError(f"No sale order line found for product {self.sale_id}")
 
     def create_odoo_filters(self, field_name: str, lot_ids: list[str]) -> list:
         # Initialize filters with the company condition
