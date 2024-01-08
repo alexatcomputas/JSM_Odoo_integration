@@ -22,7 +22,7 @@ class Order:
         self.error_models.saleorder = SaleOrder(id=-1, name="")
 
         # Initialize instance attributes to store data
-        self.serial_number = serial_number
+        self.serial_number = serial_number.upper()
         self.stockmoveline = None
         self.picking_ids = []
         self.product_ids = []
@@ -48,7 +48,6 @@ class Order:
             if item.product_id:
                 self.product_ids.append(item.product_id[0])
 
-        # TODO: Get the product name for the product_id which has more than one serial number
         for item in self.stockmoveline:
             # split lot_name string by comma into temp list
             if item.lot_name:
@@ -100,11 +99,11 @@ class Order:
         # Check if there is exactly one lot_id
         if len(lot_ids) == 1:
             # Add it to the filters with an implicit AND clause
-            filters.append((field_name, "ilike", lot_ids[0]))
+            filters.append((field_name, "like", lot_ids[0]))
         else:
             # If there's more than one lot_id, prepare for OR logic
             for lot_id in lot_ids:
-                lot_id_filters.append((field_name, "ilike", lot_id))
+                lot_id_filters.append((field_name, "like", lot_id))
 
             # Finally, Add the lot_id filters to the filters list with OR logic
             if lot_id_filters:
