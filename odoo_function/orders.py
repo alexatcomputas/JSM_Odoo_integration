@@ -51,12 +51,13 @@ class Order:
         # TODO: Get the product name for the product_id which has more than one serial number
         for item in self.stockmoveline:
             # split lot_name string by comma into temp list
-            lotnames = item.lot_name.split(",")
-            if len(lotnames) > 1:
-                self.products = Products(product_ids=item.product_id[0])
-                break
-            else:
-                self.products = self.products.append(Products(product_ids=item.product_id[0]))
+            if item.lot_name:
+                lotnames = item.lot_name.split(",")
+                if len(lotnames) > 1:
+                    self.products = Products(product_ids=item.product_id[0]).products
+                    break
+                else:
+                    self.products.extend(Products(product_ids=item.product_id[0]).products)
 
         # Proceed if picking id's are found, else exit
         if self.picking_ids:
@@ -84,12 +85,6 @@ class Order:
             so_line_item = self.get_SaleOrderLine(order_id=self.sale_id, product_id=product_id)
             if so_line_item and so_line_item != self.error_models.saleorderline:
                 so_line_items.append(so_line_item)
-
-        # Check that the product name contains "Kit"
-        # for so_line_item in so_line_items:
-        #     if "Kit" in so_line_item.name:
-        #         self.so_line = so_line_item
-        #         break
 
         if not self.so_line:
             self.so_line = so_line_items
@@ -132,18 +127,24 @@ class Order:
         else:
             return []
 
-    def create_stock_move_line(self, records_data) -> list[StockMoveLine]:
+    def create_stock_move_line(self, records_data: list, lot_name: str = None) -> list[StockMoveLine]:
+        # If created from production.lot lot_name is missing, so needs to be supplied
+
         # Logic to create StockMoveLine objects from records
         results = []
         for record in records_data:
+            # Get SN from record. If false (when retrieved from production.-lot table); get name instead
+
             stockmoveline = StockMoveLine(
-                lot_name=record.get("lot_name", None),
-                product_id=record.get("product_id", None),
-                picking_id=record.get("picking_id", None),
-                state=record.get("state", None),
-                origin=record.get("origin", None),
-                company_id=record.get("company_id", None),
+                lot_name=lot_name if lot_name else record.get("lot_name"),
+                product_id=record.get("product_id"),
+                picking_id=record.get("picking_id"),
+                state=record.get("state"),
+                origin=record.get("origin"),
+                company_id=record.get("company_id"),
             )
+            # if from_productionlot:
+            #     stockmoveline.lot_name = self.
 
             results.append(stockmoveline)
 
@@ -155,6 +156,9 @@ class Order:
 
     def get_stockmoveline(self, lot_name_to_search: str) -> list[StockMoveLine]:
         error_model = self.error_models.stockmoveline
+        from_productionLot = False
+
+        # If multiple SN's, split them into a list
         lot_ids = lot_name_to_search.replace(" ", "").split(",")
 
         matching_record_ids = self.search_stock_move_line(lot_ids)
@@ -162,10 +166,11 @@ class Order:
         if not matching_record_ids:
             logging.info("No records found in stock.move.line with the specified lot name. Checking production.lot for lot reference.")
             matching_record_ids = self._search_production_lot(lot_ids)
-            if not matching_record_ids:
-                logging.warning(f"No production.lot record found either for lot id's [{', '.join(lot_ids)}].")
+            if matching_record_ids:
+                from_productionLot = True
 
         if not matching_record_ids:
+            logging.warning(f"No production.lot record found either for lot id's [{', '.join(lot_ids)}].")
             logging.info(
                 f"""Could not find any matching record data in stock.move.line/production lot with
                 specified lot name/serial number [{lot_name_to_search}]."""
@@ -176,8 +181,10 @@ class Order:
             matching_record_ids, ["lot_name", "product_id", "picking_id", "state", "origin", "company_id"]
         )
 
-        stockmoveline = self.create_stock_move_line(records_data)
-        return stockmoveline
+        if from_productionLot:
+            return self.create_stock_move_line(records_data, lot_name=lot_name_to_search)
+        else:
+            return self.create_stock_move_line(records_data, lot_name=None)
 
     def get_StockPicking(self, picking_id: int) -> StockPicking:
         model = self.picking_model
@@ -259,6 +266,3 @@ class Order:
             )
 
             return sale_order_data
-
-    def get_product():
-        pass
