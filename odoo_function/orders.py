@@ -93,7 +93,7 @@ class Order:
 
     def create_odoo_filters(self, field_name: str, lot_ids: list[str]) -> list:
         # Initialize filters with the company condition
-        filters = [("company_id", "=", 1)]
+        filters = [("company_id", "=", 1), ("state", "=", "done")]
         lot_id_filters = []
 
         # Check if there is exactly one lot_id
@@ -104,6 +104,7 @@ class Order:
             # If there's more than one lot_id, prepare for OR logic
             for lot_id in lot_ids:
                 lot_id_filters.append((field_name, "like", lot_id))
+                lot_id_filters.append(("production_id.lot_producing_id.name", "ilike", lot_id))
 
             # Finally, Add the lot_id filters to the filters list with OR logic
             if lot_id_filters:
@@ -142,8 +143,6 @@ class Order:
                 origin=record.get("origin"),
                 company_id=record.get("company_id"),
             )
-            # if from_productionlot:
-            #     stockmoveline.lot_name = self.
 
             results.append(stockmoveline)
 
@@ -157,7 +156,7 @@ class Order:
         error_model = self.error_models.stockmoveline
         from_productionLot = False
 
-        # If multiple SN's, split them into a list
+        # If multiple SN's, split them into list
         lot_ids = lot_name_to_search.replace(" ", "").split(",")
 
         matching_record_ids = self.search_stock_move_line(lot_ids)
@@ -177,7 +176,7 @@ class Order:
             return error_model
 
         records_data = self.stock_move_line_model.read(
-            matching_record_ids, ["lot_name", "product_id", "picking_id", "state", "origin", "company_id"]
+            matching_record_ids, ["lot_name", "product_id", "picking_id", "state", "origin", "company_id", "pack_mrp_id"]
         )
 
         if from_productionLot:
