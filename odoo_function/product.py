@@ -15,7 +15,7 @@ class Products:
         self.products = self.get_products(product_ids, barcodes=barcodes)
 
     def get_all_products(self) -> list[Product]:
-        # Search by id if it is not None, either search by barcode if it is not None, if both have values do both and concatenate results
+        # Search by id if not None. Search by barcode if not None, if both have values do both and concatenate results
         return self.products
 
     def get_products(self, product_ids: list[int] = None, barcodes: list[str] = None) -> list[Product]:
