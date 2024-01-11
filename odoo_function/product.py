@@ -1,23 +1,66 @@
-# from models import Product
+from types import SimpleNamespace
+
+from odoorpc import ODOO
+
+from models import Product
+from odoo import Odoo as odoo
 
 
-# class ProductParser:
-#     def __init__(self, customer_id):
-#         self.customer_id = customer_id
-#         self.product_data = self.fetch_product_data()
+class Products:
+    def __init__(self, product_ids: list[int] = None, barcodes: list[str] = None, odoo: ODOO = odoo):
+        self.odoo = odoo
+        self.product_model = odoo.env["product.product"]
+        self.error_models = SimpleNamespace()
+        self.error_models.product = Product(id="-1", name="-1", barcode="-1")
+        self.products = self.get_products(product_ids, barcodes=barcodes)
 
-#     def fetch_product_data(self) -> Product:
-#         serial_numbers = self._get_serial_numbers(self.customer_id)
+    def get_all_products(self) -> list[Product]:
+        # Search by id if not None. Search by barcode if not None, if both have values do both and concatenate results
+        return self.products
 
-#         product = Product()
-#         return
+    def get_products(self, product_ids: list[int] = None, barcodes: list[str] = None) -> list[Product]:
+        products = []
 
-#     def _get_serial_numbers(self) -> list[str]:
-#         return None
+        if product_ids:
+            products.extend(self._get_product_by_id(product_ids))
 
-#     # def _get_
+        if barcodes:
+            products.extend(self._get_product_by_barcode(barcodes))
 
-#     # name: Annotated[str, StringConstraints(strip_whitespace=True)]
-#     # description: Annotated[str, StringConstraints(strip_whitespace=True)]
-#     # serial_numbers: Optional[list[Annotated[str, StringConstraints(strip_whitespace=True)]]]
-#     # list_price: Optional[float]
+        return products
+
+    def _get_product_by_id(self, product_ids: list[int]) -> Product:
+        products = []
+
+        results = self.product_model.read(product_ids, ["id", "name", "barcode"])
+
+        for record in results:
+            product = Product(
+                id=record.get("id", None),
+                name=record.get("name", None),
+                barcode=record.get("barcode", None),
+            )
+
+            products.append(product)
+
+        return products
+
+    def _get_product_by_barcode(self, barcodes: list[str]) -> Product:
+        products = []
+        product_ids = self.product_model.search([("barcode", "=", barcodes)])
+
+        if not product_ids:
+            return products
+
+        results = self.product_model.read(product_ids, ["id", "name", "barcode"])
+
+        for record in results:
+            product = Product(
+                id=record.get("id", None),
+                name=record.get("name", None),
+                barcode=record.get("barcode", None),
+            )
+
+            products.append(product)
+
+        return products

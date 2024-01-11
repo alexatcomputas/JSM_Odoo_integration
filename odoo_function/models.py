@@ -59,3 +59,10 @@ class SaleOrderLine(BaseModel):
     name: Optional[StrAnnotated] = None
     quantity: Optional[float] = None
     price_unit: Optional[float] = None
+
+
+class Product(BaseModel):
+    id: int
+    name: Optional[StrAnnotated] = None
+    barcode: Optional[StrAnnotatedorFalse] = None
+    # alternative_barcodes: Optional[StrAnnotated] = None
