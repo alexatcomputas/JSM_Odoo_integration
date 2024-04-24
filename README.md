@@ -26,3 +26,4 @@ Created by Computas AS Oslo :smile:
      - odoo_prod_db
      - access_password defines the password to interact with and get a token in return from the token_generator function
    - When adding new passwords and such, please do only add new versions of the secret. The function will be able to access only the newest version of the secret.
+ - **SECURITY CONSIDERATION** Please add a very strong password asaccess_password, and keep minimum viable access in mind, limit all access to the given token/service account to strictly allow invoking the next cloud function. No other privileges should be granted.
